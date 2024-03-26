@@ -1,0 +1,9 @@
+{
+    "name" : "plyloader",
+    "version" : "1.0.0",
+    "dependencies": [
+      "range-v3",
+      "gtest",
+      "fmt"
+    ]
+}
