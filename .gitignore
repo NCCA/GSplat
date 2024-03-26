@@ -1,0 +1,4 @@
+bonsai
+cmake-build*
+build*
+.idea

@@ -56,8 +56,8 @@ target_link_libraries(${TargetName} PRIVATE Qt::Widgets Qt::OpenGL NGL)
 target_link_libraries(${TargetName} PRIVATE fmt::fmt-header-only)
 target_link_libraries(${TargetName} PRIVATE range-v3::meta range-v3::concepts range-v3::range-v3)
 
-#add_custom_target(${TargetName}CopyShaders ALL
-#    COMMAND ${CMAKE_COMMAND} -E copy_directory
-#    ${CMAKE_CURRENT_SOURCE_DIR}/shaders
-#    $<TARGET_FILE_DIR:${TargetName}>/shaders
-#)
+add_custom_target(${TargetName}CopyShaders ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders
+    $<TARGET_FILE_DIR:${TargetName}>/shaders
+)

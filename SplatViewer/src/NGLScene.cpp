@@ -7,11 +7,11 @@
 #include <ngl/ShaderLib.h>
 #include <iostream>
 
-NGLScene::NGLScene(std::string_view _filename)
+NGLScene::NGLScene(std::string_view _filename) : m_filename{_filename}
 {
   // re-size the widget to that of the parent (in this case the GLFrame passed in on construction)
   setTitle("Blank NGL");
-  m_splat = std::make_unique<Splat>(_filename);
+
 }
 
 
@@ -41,16 +41,23 @@ void NGLScene::initializeGL()
   glEnable(GL_DEPTH_TEST);
   // enable multisampling for smoother drawing
   glEnable(GL_MULTISAMPLE);
-  m_splat->createVAO();
+  ngl::ShaderLib::loadShader("SplatShader","shaders/SplatVertex.glsl","shaders/SplatFragment.glsl");
+  // colour shader for debug
   ngl::ShaderLib::use(ngl::nglColourShader);
   ngl::ShaderLib::setUniform("Colour",1.0f,0.0f,0.0f,1.0f);
   // We now create our view matrix for a static camera
-  ngl::Vec3 from{0.0f, 2.0f, 2.0f};
+  m_splat = std::make_unique<Splat>(m_filename);
+  m_splat->createVAO();
+  auto from =m_splat->getMaxBound()+ngl::Vec3(0.0f,0.0f,2.0f);
+  //ngl::Vec3 from{0.0f, 2.0f, 2.0f};
   ngl::Vec3 to{0.0f, 0.0f, 0.0f};
   ngl::Vec3 up{0.0f, 1.0f, 0.0f};
   // now load to our new camera
   m_view = ngl::lookAt(from, to, up);
+  m_project=ngl::perspective(45.0f,1024.0f/720.0f,0.1f,200.0f);
 
+  ngl::ShaderLib::loadShader("PointSplatShader","shaders/PointSplatVertex.glsl","shaders/PointSplatFragment.glsl");
+  ngl::ShaderLib::use("PointSplatShader");
 }
 
 
@@ -70,8 +77,11 @@ void NGLScene::paintGL()
   m_mouseGlobalTX.m_m[3][0] = m_modelPos.m_x;
   m_mouseGlobalTX.m_m[3][1] = m_modelPos.m_y;
   m_mouseGlobalTX.m_m[3][2] = m_modelPos.m_z;
+  ngl::ShaderLib::use("PointSplatShader");
   ngl::ShaderLib::setUniform("MVP",m_project*m_view*m_mouseGlobalTX);
   m_splat->render();
+  ngl::ShaderLib::use("nglColourShader");
+  m_splat->drawBB();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -86,7 +86,7 @@ private:
     ngl::Mat4 m_view;
     ngl::Mat4 m_project;
     ngl::Mat4 m_mouseGlobalTX;
-
+    std::string m_filename;
 };
 
 
