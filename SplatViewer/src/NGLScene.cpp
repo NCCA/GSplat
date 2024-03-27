@@ -10,7 +10,8 @@
 NGLScene::NGLScene(std::string_view _filename) : m_filename{_filename}
 {
   // re-size the widget to that of the parent (in this case the GLFrame passed in on construction)
-  setTitle("Blank NGL");
+  setTitle("Gaussian Splatting");
+  m_timer.start();
 
 }
 
@@ -26,7 +27,7 @@ void NGLScene::resizeGL(int _w , int _h)
 {
   m_win.width  = static_cast<int>( _w * devicePixelRatio() );
   m_win.height = static_cast<int>( _h * devicePixelRatio() );
-  m_project = ngl::perspective(45.0f, static_cast<float>(_w) / _h, 0.1f, 200.0f);
+  m_cam.setProjection(45.0f, static_cast<float>(m_win.width) / m_win.width, 0.05f, 2500.0f);
 
 }
 
@@ -48,14 +49,13 @@ void NGLScene::initializeGL()
   // We now create our view matrix for a static camera
   m_splat = std::make_unique<Splat>(m_filename);
   m_splat->createVAO();
-  auto from =m_splat->getMaxBound()+ngl::Vec3(0.0f,0.0f,2.0f);
+  auto from =m_splat->getMaxBound()+ngl::Vec3(0.0f,0.0f,0.5f);
   //ngl::Vec3 from{0.0f, 2.0f, 2.0f};
   ngl::Vec3 to{0.0f, 0.0f, 0.0f};
   ngl::Vec3 up{0.0f, 1.0f, 0.0f};
-  // now load to our new camera
-  m_view = ngl::lookAt(from, to, up);
-  m_project=ngl::perspective(45.0f,1024.0f/720.0f,0.1f,200.0f);
-
+  m_cam.set(from,to,up);
+  m_cam.setProjection(45.0f, static_cast<float>(m_win.width) / m_win.height, 0.05f, 2500.0f);
+  // now load to our new camerax
   ngl::ShaderLib::loadShader("PointSplatShader","shaders/PointSplatVertex.glsl","shaders/PointSplatFragment.glsl");
   ngl::ShaderLib::use("PointSplatShader");
 }
@@ -64,23 +64,65 @@ void NGLScene::initializeGL()
 
 void NGLScene::paintGL()
 {
+  std::chrono::steady_clock::time_point startPaint = std::chrono::steady_clock::now();
+
+  float currentFrame = m_timer.elapsed() * 0.001f;
+  m_deltaTime = currentFrame - m_lastFrame;
+  m_lastFrame = currentFrame;
+  auto rot=ngl::Mat4::rotateZ(180.0f);
   // clear the screen and depth buffer
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glViewport(0,0,m_win.width,m_win.height);
-  // Rotation based on the mouse position for our global transform
-  auto rotX = ngl::Mat4::rotateX(m_win.spinXFace);
-  auto rotY = ngl::Mat4::rotateY(m_win.spinYFace);
+  /// first we reset the movement values
+  float xDirection = 0.0;
+  float yDirection = 0.0;
+  // now we loop for each of the pressed keys in the the set
+  // and see which ones have been pressed. If they have been pressed
+  // we set the movement value to be an incremental value
+          foreach (Qt::Key key, m_keysPressed)
+    {
+      switch (key)
+      {
+        case Qt::Key_Left:
+        {
+          yDirection = -1.0f;
+          break;
+        }
+        case Qt::Key_Right:
+        {
+          yDirection = 1.0f;
+          break;
+        }
+        case Qt::Key_Up:
+        {
+          xDirection = 1.0f;
+          break;
+        }
+        case Qt::Key_Down:
+        {
+          xDirection = -1.0f;
+          break;
+        }
+        default:
+          break;
+      }
+    }
+  // if the set is non zero size we can update the ship movement
+  // then tell openGL to re-draw
+  if (m_keysPressed.size() != 0)
+  {
+    m_cam.move(xDirection, yDirection, m_deltaTime);
+  }
 
-  // multiply the rotations
-  m_mouseGlobalTX = rotX * rotY;
-  // add the translations
-  m_mouseGlobalTX.m_m[3][0] = m_modelPos.m_x;
-  m_mouseGlobalTX.m_m[3][1] = m_modelPos.m_y;
-  m_mouseGlobalTX.m_m[3][2] = m_modelPos.m_z;
+
   ngl::ShaderLib::use("PointSplatShader");
-  ngl::ShaderLib::setUniform("MVP",m_project*m_view*m_mouseGlobalTX);
+  //ngl::ShaderLib::setUniform("MVP",m_cam.getProjection()*m_cam.getView()*rot);
+  ngl::ShaderLib::setUniform("projection",m_cam.getProjection());
+  ngl::ShaderLib::setUniform("view",m_cam.getView()*rot);
   m_splat->render();
+
   ngl::ShaderLib::use("nglColourShader");
+  ngl::ShaderLib::setUniform("MVP",m_cam.getProjection()*m_cam.getView()*rot);
   m_splat->drawBB();
 }
 
@@ -88,6 +130,8 @@ void NGLScene::paintGL()
 
 void NGLScene::keyPressEvent(QKeyEvent *_event)
 {
+  m_keysPressed += static_cast<Qt::Key>(_event->key());
+
   // this method is called every time the main window recives a key event.
   // we then switch on the key value and set the camera in the GLWindow
   switch (_event->key())
@@ -98,11 +142,20 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
       m_win.spinXFace=0;
       m_win.spinYFace=0;
       m_modelPos.set(ngl::Vec3::zero());
+      m_cam.set({0, 2, 10}, {0, 0, 0}, {0, 1, 0});
 
-  break;
+
+      break;
   default : break;
   }
   // finally update the GLWindow and re-draw
 
     update();
+}
+
+
+void NGLScene::keyReleaseEvent(QKeyEvent *_event)
+{
+  // remove from our key set any keys that have been released
+  m_keysPressed -= static_cast<Qt::Key>(_event->key());
 }

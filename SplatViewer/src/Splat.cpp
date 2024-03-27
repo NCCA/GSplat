@@ -47,9 +47,13 @@ void Splat::processSplatPlyData(std::string_view _filename)
     auto g=vertex.properties[g_index].value[i];
     auto b=vertex.properties[b_index].value[i];
     auto a=vertex.properties[a_index].value[i];
-    float red=(0.5f + colour_coef * std::get<float>(r)) * 255;
-    float green=(0.5f + colour_coef * std::get<float>(g)) * 255;
-    float blue=(0.5f + colour_coef * std::get<float>(b)) * 255;
+    float red=std::get<float>(r);
+    float green=std::get<float>(g);
+    float blue=std::get<float>(b);
+
+//    float red=(0.5f + colour_coef * std::get<float>(r)) * 255;
+//    float green=(0.5f + colour_coef * std::get<float>(g)) * 255;
+//    float blue=(0.5f + colour_coef * std::get<float>(b)) * 255;
     float alpha= (1.0 / (1.0 + std::exp(-std::get<float>(a)))) * 255;
     m_colours.emplace_back(ngl::Vec4(red,green,blue,alpha));
   }
@@ -113,8 +117,9 @@ void Splat::createVAO()
   m_vao->setNumIndices(m_points.size());
 
   m_vao->unbind();
-  m_bbox=std::make_unique<ngl::BBox>(m_minBound.m_x,m_maxBound.m_x,m_minBound.m_y,m_maxBound.m_y,m_minBound.m_z,m_maxBound.m_z,false);
-  m_bbox->setDrawMode(GL_LINE);
+
+  m_bbox=std::make_unique<ngl::BBox>(m_minBound.m_x,m_maxBound.m_x,m_minBound.m_y,m_maxBound.m_y,m_minBound.m_z,m_maxBound.m_z);
+
 }
 
 
@@ -124,6 +129,8 @@ void Splat::render() const
 {
   m_vao->bind();
   m_vao->draw();
+  //glDrawArraysInstanced(GL_TRIANGLES,0,3,m_points.size());
+  //glDrawArrays(GL_POINTS,0,m_points.size());
   m_vao->unbind();
 }
 

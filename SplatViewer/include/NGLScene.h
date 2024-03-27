@@ -4,8 +4,12 @@
 #include <ngl/Mat4.h>
 #include "WindowParams.h"
 #include "Splat.h"
+#include "FirstPersonCamera.h"
 #include <memory>
 #include <string_view>
+#include <QSet>
+#include <QElapsedTimer>
+
 // this must be included after NGL includes else we get a clash with gl libs
 #include <QOpenGLWindow>
 //----------------------------------------------------------------------------------------------------------------------
@@ -54,6 +58,7 @@ private:
     /// @param [in] _event the Qt event to query for size etc
     //----------------------------------------------------------------------------------------------------------------------
     void keyPressEvent(QKeyEvent *_event) override;
+    void keyReleaseEvent(QKeyEvent *_event) override;
     //----------------------------------------------------------------------------------------------------------------------
     /// @brief this method is called every time a mouse is moved
     /// @param _event the Qt Event structure
@@ -83,10 +88,24 @@ private:
     /// position for our model
     ngl::Vec3 m_modelPos;
     std::unique_ptr<Splat> m_splat;
-    ngl::Mat4 m_view;
-    ngl::Mat4 m_project;
     ngl::Mat4 m_mouseGlobalTX;
     std::string m_filename;
+    FirstPersonCamera m_cam;
+    //----------------------------------------------------------------------------------------------------------------------
+    /// @brief the keys being pressed
+    //----------------------------------------------------------------------------------------------------------------------
+    QSet<Qt::Key> m_keysPressed;
+    //----------------------------------------------------------------------------------------------------------------------
+    /// @brief timing for camera update
+    //----------------------------------------------------------------------------------------------------------------------
+    float m_deltaTime = 0.0f;
+    //----------------------------------------------------------------------------------------------------------------------
+    /// @brief frame time for camera update
+    //----------------------------------------------------------------------------------------------------------------------
+    float m_lastFrame = 0.0f;
+    QElapsedTimer m_timer;
+
+
 };
 
 
