@@ -78,7 +78,7 @@ void FirstPersonCamera::processMouseMovement(float _xoffset, float _yoffset, GLb
 
 void FirstPersonCamera::processMouseScroll(float _yoffset) noexcept
 {
-  std::cout<<"zoom "<<_yoffset<<' '<<m_zoom<<'\n';
+  //std::cout<<"zoom "<<_yoffset<<' '<<m_zoom<<'\n';
     if (m_zoom >= 1.0f && m_zoom <= 45.0f)
         m_zoom -= _yoffset;
     if (m_zoom <= 1.0f)

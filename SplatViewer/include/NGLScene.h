@@ -104,6 +104,8 @@ private:
     //----------------------------------------------------------------------------------------------------------------------
     float m_lastFrame = 0.0f;
     QElapsedTimer m_timer;
+    enum class DrawMode {Points,Splats};
+    DrawMode m_drawMode=DrawMode::Points;
 
 
 };

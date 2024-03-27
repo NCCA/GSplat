@@ -18,6 +18,7 @@ class FirstPersonCamera
     void move(float _x, float _y, float _deltaTime);
     void processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true) noexcept;
     void processMouseScroll(float _yoffset) noexcept;
+    void setSpeed(ngl::Real _speed) noexcept {m_speed=_speed;}
   private :
     ngl::Mat4 m_view;
     ngl::Mat4 m_projection;

@@ -1,74 +1,30 @@
 #version 410 core
 
-uniform usampler2D u_texture;
-uniform mat4 projection, view;
-uniform vec2 focal;
-uniform vec2 viewport;
 
-in vec2 position;
-in int index;
-
-out vec4 vColor;
-out vec2 vPosition;
-
-
-uint half2float(uint h)
-{
-    return ((h & uint(0x8000)) << uint(16)) | ((( h & uint(0x7c00)) + uint(0x1c000)) << uint(13)) | ((h & uint(0x03ff)) << uint(13));
+out vec4 pointColour;
+uniform mat4 view;
+uniform mat4 projection;
+uniform samplerBuffer posSampler;
+uniform samplerBuffer colourSampler;
+uniform samplerBuffer scaleSampler;
+uniform samplerBuffer rotationSampler;
+out mat3 rotation;
+mat3 quatToMat(vec4 q) {
+    return mat3(2.0 * (q.x * q.x + q.y * q.y) - 1.0, 2.0 * (q.y * q.z + q.x * q.w), 2.0 * (q.y * q.w - q.x * q.z), // 1st column
+                2.0 * (q.y * q.z - q.x * q.w), 2.0 * (q.x * q.x + q.z * q.z) - 1.0, 2.0 * (q.z * q.w + q.x * q.y), // 2nd column
+                2.0 * (q.y * q.w + q.x * q.z), 2.0 * (q.z * q.w - q.x * q.y), 2.0 * (q.x * q.x + q.w * q.w) - 1.0); // last column
 }
 
-
-vec2 unpackHalf2x16(uint v)
+void main()
 {
-    return vec2(uintBitsToFloat(half2float(v & uint(0xffff))),
-                uintBitsToFloat(half2float(v >> uint(16))));
-}
+    vec3 inPos=texelFetch(posSampler,gl_VertexID).xyz;
+    vec4 inColour=texelFetch(colourSampler,gl_VertexID);
 
+    vec3 scale=texelFetch(scaleSampler,gl_VertexID).xyz;
+    vec3 scaled=scale*inPos;
+    rotation=quatToMat(texelFetch(rotationSampler,gl_VertexID));
 
-void main ()
-{
-    uvec4 cen = texelFetch(u_texture, ivec2((uint(index) & 0x3ffu) << 1, uint(index) >> 10), 0);
-    vec4 cam = view * vec4(uintBitsToFloat(cen.xyz), 1);
-    vec4 pos2d = projection * cam;
-
-    float clip = 1.2 * pos2d.w;
-    if (pos2d.z < -clip || pos2d.x < -clip || pos2d.x > clip || pos2d.y < -clip || pos2d.y > clip)
-    {
-        gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
-        return;
-    }
-
-    uvec4 cov = texelFetch(u_texture, ivec2(((uint(index) & 0x3ffu) << 1) | 1u, uint(index) >> 10), 0);
-    vec2 u1 = unpackHalf2x16(cov.x);
-    vec2 u2 = unpackHalf2x16(cov.y);
-    vec2 u3 = unpackHalf2x16(cov.z);
-    mat3 Vrk = mat3(u1.x, u1.y, u2.x, u1.y, u2.y, u3.x, u2.x, u3.x, u3.y);
-
-    mat3 J = mat3(
-        focal.x / cam.z, 0., -(focal.x * cam.x) / (cam.z * cam.z), 
-        0., -focal.y / cam.z, (focal.y * cam.y) / (cam.z * cam.z), 
-        0., 0., 0.
-    );
-
-    mat3 T = transpose(mat3(view)) * J;
-    mat3 cov2d = transpose(T) * Vrk * T;
-
-    float mid = (cov2d[0][0] + cov2d[1][1]) / 2.0;
-    float radius = length(vec2((cov2d[0][0] - cov2d[1][1]) / 2.0, cov2d[0][1]));
-    float lambda1 = mid + radius, lambda2 = mid - radius;
-
-    if(lambda2 < 0.0) return;
-    vec2 diagonalVector = normalize(vec2(cov2d[0][1], lambda1 - cov2d[0][0]));
-    vec2 majorAxis = min(sqrt(2.0 * lambda1), 1024.0) * diagonalVector;
-    vec2 minorAxis = min(sqrt(2.0 * lambda2), 1024.0) * vec2(diagonalVector.y, -diagonalVector.x);
-
-    vColor = clamp(pos2d.z/pos2d.w+1.0, 0.0, 1.0) * vec4((cov.w) & 0xffu, (cov.w >> 8) & 0xffu, (cov.w >> 16) & 0xffu, (cov.w >> 24) & 0xffu) / 255.0;
-    vPosition = position;
-
-    vec2 vCenter = vec2(pos2d) / pos2d.w;
-    gl_Position = vec4(
-        vCenter 
-        + position.x * majorAxis / viewport 
-        + position.y * minorAxis / viewport, 0.0, 1.0);
-
+    gl_Position = vec4(inPos,1.0f);
+    pointColour.rgb = inColour.rgb * 0.28+vec3(0.5,0.5,0.5);
+    pointColour.a = 0.5;//inColour.a;
 }

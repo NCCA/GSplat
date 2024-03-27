@@ -31,6 +31,8 @@ void NGLScene::resizeGL(int _w , int _h)
 
 }
 
+constexpr char* PointSplatShader="PointSplatShader";
+constexpr char* SplatShader="SplatShader";
 
 void NGLScene::initializeGL()
 {
@@ -42,7 +44,7 @@ void NGLScene::initializeGL()
   glEnable(GL_DEPTH_TEST);
   // enable multisampling for smoother drawing
   glEnable(GL_MULTISAMPLE);
-  ngl::ShaderLib::loadShader("SplatShader","shaders/SplatVertex.glsl","shaders/SplatFragment.glsl");
+  ngl::ShaderLib::loadShader(SplatShader,"shaders/SplatVertex.glsl","shaders/SplatFragment.glsl","shaders/SplatGeometry.glsl");
   // colour shader for debug
   ngl::ShaderLib::use(ngl::nglColourShader);
   ngl::ShaderLib::setUniform("Colour",1.0f,0.0f,0.0f,1.0f);
@@ -56,8 +58,8 @@ void NGLScene::initializeGL()
   m_cam.set(from,to,up);
   m_cam.setProjection(45.0f, static_cast<float>(m_win.width) / m_win.height, 0.05f, 2500.0f);
   // now load to our new camerax
-  ngl::ShaderLib::loadShader("PointSplatShader","shaders/PointSplatVertex.glsl","shaders/PointSplatFragment.glsl");
-  ngl::ShaderLib::use("PointSplatShader");
+  ngl::ShaderLib::loadShader(PointSplatShader,"shaders/PointSplatVertex.glsl","shaders/PointSplatFragment.glsl");
+  ngl::ShaderLib::use(PointSplatShader);
 }
 
 
@@ -79,7 +81,7 @@ void NGLScene::paintGL()
   // now we loop for each of the pressed keys in the the set
   // and see which ones have been pressed. If they have been pressed
   // we set the movement value to be an incremental value
-          foreach (Qt::Key key, m_keysPressed)
+  foreach (Qt::Key key, m_keysPressed)
     {
       switch (key)
       {
@@ -114,14 +116,40 @@ void NGLScene::paintGL()
     m_cam.move(xDirection, yDirection, m_deltaTime);
   }
 
+  if (m_drawMode == DrawMode::Points)
+  {
+    glEnable(GL_DEPTH_TEST); // Disable depth testing
+    glDisable(GL_BLEND);
 
-  ngl::ShaderLib::use("PointSplatShader");
-  //ngl::ShaderLib::setUniform("MVP",m_cam.getProjection()*m_cam.getView()*rot);
-  ngl::ShaderLib::setUniform("projection",m_cam.getProjection());
-  ngl::ShaderLib::setUniform("view",m_cam.getView()*rot);
-  m_splat->render();
+    m_cam.setSpeed(2.5f);
+    ngl::ShaderLib::use(PointSplatShader);
+    ngl::ShaderLib::setUniform("posSampler", 0);
+    ngl::ShaderLib::setUniform("colourSampler", 1);
+    ngl::ShaderLib::setUniform("projection", m_cam.getProjection());
+    ngl::ShaderLib::setUniform("view", m_cam.getView() * rot); /// * rot?
+    //glPointSize(10.0f);
+    m_splat->renderPoints();
+  }
+  else if (m_drawMode == DrawMode::Splats)
+  {
+    glDisable(GL_DEPTH_TEST); // Disable depth testing
+//
+//    glEnable(GL_BLEND);
+//    glBlendFuncSeparate( GL_ONE_MINUS_DST_ALPHA, GL_ONE, GL_ONE_MINUS_DST_ALPHA, GL_ONE);
+//    glBlendEquationSeparate(GL_FUNC_ADD,GL_FUNC_ADD);
+    m_cam.setSpeed(20.0f);
+    ngl::ShaderLib::use(SplatShader);
+    ngl::ShaderLib::setUniform("posSampler", 0);
+    ngl::ShaderLib::setUniform("colourSampler", 1);
+    ngl::ShaderLib::setUniform("scaleSampler", 2);
+    ngl::ShaderLib::setUniform("rotationSampler", 3);
+    ngl::ShaderLib::setUniform("eye", m_cam.getEye());
 
-  ngl::ShaderLib::use("nglColourShader");
+    ngl::ShaderLib::setUniform("projection", m_cam.getProjection());
+    ngl::ShaderLib::setUniform("view", m_cam.getView() * rot); /// * rot?
+    m_splat->renderSplats();
+  }
+  ngl::ShaderLib::use(ngl::nglColourShader);
   ngl::ShaderLib::setUniform("MVP",m_cam.getProjection()*m_cam.getView()*rot);
   m_splat->drawBB();
 }
@@ -143,8 +171,12 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
       m_win.spinYFace=0;
       m_modelPos.set(ngl::Vec3::zero());
       m_cam.set({0, 2, 10}, {0, 0, 0}, {0, 1, 0});
-
-
+      break;
+    case Qt::Key_P :
+      m_drawMode=DrawMode::Points;
+      break;
+    case Qt::Key_S :
+      m_drawMode=DrawMode::Splats;
       break;
   default : break;
   }
