@@ -7,7 +7,7 @@
 #include <ngl/MultiBufferVAO.h>
 #include <ngl/BBox.h>
 
-
+#include <unordered_map>
 
 class Splat
 {
@@ -22,18 +22,19 @@ public :
     ~Splat();
     void createVAO();
     void createTextureBuffers();
+    void generateIndexBuffer();
     void toggleBounds(){m_drawBounds^=true;}
     ngl::Vec3 getMinBound() const {return m_minBound;}
     ngl::Vec3 getMaxBound() const {return m_maxBound;}
+    size_t getNumPoints() const {return m_numPoints;}
+    size_t getNumSplatPoints() const {return m_numSplatPoints;}
 private :
     void calculateBounds(const std::vector<ngl::Vec3> &_points);
 
     size_t m_numPoints=0;
-//    std::vector<ngl::Vec3> m_points;
-//    std::vector<ngl::Vec4> m_colours;
-//    //std::vector<ngl::Vec3> m_scales;
-//    std::vector<ngl::Mat3> m_rotations;
-//    std::unique_ptr<ngl::MultiBufferVAO> m_vao;
+    size_t m_numSplatPoints=0;
+    GLuint m_indexBufferID;
+    GLuint m_indexBufferStorage;
     std::unique_ptr<ngl::BBox> m_bbox;
     ngl::Vec3 m_minBound;
     ngl::Vec3 m_maxBound;

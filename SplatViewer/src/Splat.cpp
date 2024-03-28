@@ -4,6 +4,8 @@
 #include <ngl/VAOFactory.h>
 #include <ngl/NGLStream.h>
 #include <climits>
+#include <numeric>
+#include <algorithm>
 Splat::Splat(std::string_view _filename)
 {
     createTextureBuffers();
@@ -12,7 +14,7 @@ Splat::Splat(std::string_view _filename)
 
 void Splat::createTextureBuffers()
 {
-  constexpr size_t s_num_buffers=5;
+  constexpr size_t s_num_buffers=6;
   GLuint targets[s_num_buffers];
   glGenTextures(s_num_buffers, &targets[0]);
   m_texturebuffers["position"]=targets[0];
@@ -20,7 +22,31 @@ void Splat::createTextureBuffers()
   m_texturebuffers["scale"]=targets[2];
   m_texturebuffers["colour"]=targets[3];
   m_texturebuffers["rotation"]=targets[4];
+  // this gets updated each frame with the splats to render in order
+  m_indexBufferID=targets[5];
 }
+
+void Splat::generateIndexBuffer()
+{
+  if(m_indexBufferStorage !=0)
+  {
+    std::cout <<"deleting buffer\n";
+    glDeleteBuffers(1,&m_indexBufferStorage);
+  }
+
+  glGenBuffers(1,&m_indexBufferStorage);
+  glBindBuffer(GL_TEXTURE_BUFFER,m_indexBufferStorage);
+
+  m_numSplatPoints=1000;
+  std::vector<GLuint> indices(m_numSplatPoints);
+  std::iota(std::begin(indices),std::end(indices),0);
+  glBufferData(GL_TEXTURE_BUFFER,m_numSplatPoints*sizeof(GLuint),&indices[0],GL_STATIC_DRAW);
+
+  glActiveTexture(GL_TEXTURE4);
+  glBindTexture(GL_TEXTURE_BUFFER,m_indexBufferID);
+  glTexBuffer(GL_TEXTURE_BUFFER,GL_R32UI,m_indexBufferID); // 32 bit unsigned int
+}
+
 
 void Splat::processSplatPlyData(std::string_view _filename)
 {
@@ -82,7 +108,8 @@ void Splat::processSplatPlyData(std::string_view _filename)
 //    float red=(0.5f + colour_coef * std::get<float>(r)) * 255;
 //    float green=(0.5f + colour_coef * std::get<float>(g)) * 255;
 //    float blue=(0.5f + colour_coef * std::get<float>(b)) * 255;
-    float alpha= (1.0 / (1.0 + std::exp(-std::get<float>(a)))) * 255;
+    //float alpha= (1.0 / (1.0 + std::exp(-std::get<float>(a)))) * 255;
+    float alpha=1.0f / (1.0f + -exp(std::get<float>(a)));
     //std::cout<<red<<' ' << green <<' '<<blue<<' '<<alpha<<'\n';
     colours.emplace_back(ngl::Vec4(red,green,blue,alpha));
   }
@@ -106,6 +133,7 @@ void Splat::processSplatPlyData(std::string_view _filename)
     auto sx = std::get<float>(vertex.properties[scale_index_x].value[i]);
     auto sy = std::get<float>(vertex.properties[scale_index_y].value[i]);
     auto sz = std::get<float>(vertex.properties[scale_index_z].value[i]);
+    //scales[i].set(std::expf(sx),std::expf(sy),std::expf(sz));
     scales[i].set(sx,sy,sz);
   }
   glGenBuffers(1,&target);
@@ -132,6 +160,8 @@ void Splat::processSplatPlyData(std::string_view _filename)
 
     rotations[i].set(rx,ry,rz,rw);
   }
+
+
   glGenBuffers(1,&target);
   glBindBuffer(GL_TEXTURE_BUFFER,target);
   glBufferData(GL_TEXTURE_BUFFER,rotations.size()*sizeof(ngl::Vec4),&rotations[0].m_x,GL_STATIC_DRAW);
@@ -237,9 +267,12 @@ void Splat::renderSplats() const
   auto rotation=m_texturebuffers.find("rotation")->second;
   glBindTexture(GL_TEXTURE_BUFFER,rotation);
 
+  glActiveTexture(GL_TEXTURE4);
+  glBindTexture(GL_TEXTURE_BUFFER,m_indexBufferID);
+
 
   glBindVertexArray(m_pointVAO);
-  glDrawArrays(GL_POINTS,0,m_numPoints);
+  glDrawArrays(GL_POINTS,0, m_numSplatPoints);
   glBindVertexArray(0);
 
 }

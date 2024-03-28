@@ -4,10 +4,11 @@
 out vec4 pointColour;
 uniform mat4 view;
 uniform mat4 projection;
-uniform samplerBuffer posSampler;
-uniform samplerBuffer colourSampler;
-uniform samplerBuffer scaleSampler;
-uniform samplerBuffer rotationSampler;
+uniform samplerBuffer posSampler; // index 0
+uniform samplerBuffer colourSampler; // index 1
+uniform samplerBuffer scaleSampler; // index 2
+uniform samplerBuffer rotationSampler; // index 3
+uniform samplerBuffer indexSampler; // index 4
 out mat3 rotation;
 mat3 quatToMat(vec4 q) {
     return mat3(2.0 * (q.x * q.x + q.y * q.y) - 1.0, 2.0 * (q.y * q.z + q.x * q.w), 2.0 * (q.y * q.w - q.x * q.z), // 1st column
@@ -17,14 +18,16 @@ mat3 quatToMat(vec4 q) {
 
 void main()
 {
-    vec3 inPos=texelFetch(posSampler,gl_VertexID).xyz;
-    vec4 inColour=texelFetch(colourSampler,gl_VertexID);
+    uint index=texelFetch(indexSampler,gl_VertexID).r;
 
-    vec3 scale=texelFetch(scaleSampler,gl_VertexID).xyz;
+    vec3 inPos=texelFetch(posSampler,index).xyz;
+    vec4 inColour=texelFetch(colourSampler,index);
+
+    vec3 scale=texelFetch(scaleSampler,index).xyz;
     vec3 scaled=scale*inPos;
-    rotation=quatToMat(texelFetch(rotationSampler,gl_VertexID));
+    rotation=quatToMat(texelFetch(rotationSampler,index));
 
-    gl_Position = vec4(inPos,1.0f);
+    gl_Position = vec4(scaled,1.0f);
     pointColour.rgb = inColour.rgb * 0.28+vec3(0.5,0.5,0.5);
-    pointColour.a = 0.5;//inColour.a;
+    pointColour.a = 0.2; //inColour.a;
 }

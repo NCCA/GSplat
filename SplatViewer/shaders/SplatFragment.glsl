@@ -32,13 +32,10 @@ vec3 sphereIntersect(vec3 c, vec3 ro, vec3 p) {
 
 void main()
 {
-    vec3 normal=vec3(0.0, 0.0, 0.0);
-    vec3 intersection = sphereIntersect(pointCenter, eye,  actualPoint);
-    if (intersection == vec3(0.0)) {
-        discard;
-    }
-    fragColour = vec4(colour.rgb, 1.0);
-//    fragColour = colour;
+
+
+
+    fragColour = colour;
 }
 
 

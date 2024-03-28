@@ -51,8 +51,8 @@ void NGLScene::initializeGL()
   // We now create our view matrix for a static camera
   m_splat = std::make_unique<Splat>(m_filename);
   m_splat->createVAO();
-  auto from =m_splat->getMaxBound()+ngl::Vec3(0.0f,0.0f,0.5f);
-  //ngl::Vec3 from{0.0f, 2.0f, 2.0f};
+  //auto from =m_splat->getMaxBound()+ngl::Vec3(0.0f,0.0f,0.5f);
+  ngl::Vec3 from{0.0f, 4.0f, -25.0f};
   ngl::Vec3 to{0.0f, 0.0f, 0.0f};
   ngl::Vec3 up{0.0f, 1.0f, 0.0f};
   m_cam.set(from,to,up);
@@ -115,16 +115,18 @@ void NGLScene::paintGL()
   {
     m_cam.move(xDirection, yDirection, m_deltaTime);
   }
-
   if (m_drawMode == DrawMode::Points)
   {
+    glClearColor(0.7f, 0.7f, 0.7f, 1.0f);			   // Grey Background
+
     glEnable(GL_DEPTH_TEST); // Disable depth testing
     glDisable(GL_BLEND);
 
-    m_cam.setSpeed(2.5f);
+    m_cam.setSpeed(25.5f);
     ngl::ShaderLib::use(PointSplatShader);
     ngl::ShaderLib::setUniform("posSampler", 0);
     ngl::ShaderLib::setUniform("colourSampler", 1);
+    ngl::ShaderLib::setUniform("scaleSampler", 2);
     ngl::ShaderLib::setUniform("projection", m_cam.getProjection());
     ngl::ShaderLib::setUniform("view", m_cam.getView() * rot); /// * rot?
     //glPointSize(10.0f);
@@ -132,21 +134,28 @@ void NGLScene::paintGL()
   }
   else if (m_drawMode == DrawMode::Splats)
   {
+    glClearColor(0.7f, 0.7f, 0.7f, 0.0f);			   // Grey Background
+    m_splat->generateIndexBuffer();
+
     glDisable(GL_DEPTH_TEST); // Disable depth testing
 //
 //    glEnable(GL_BLEND);
+//    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//    glBlendFunc(GL_ONE_MINUS_DST_ALPHA, GL_ONE);
+//
 //    glBlendFuncSeparate( GL_ONE_MINUS_DST_ALPHA, GL_ONE, GL_ONE_MINUS_DST_ALPHA, GL_ONE);
 //    glBlendEquationSeparate(GL_FUNC_ADD,GL_FUNC_ADD);
-    m_cam.setSpeed(20.0f);
+    m_cam.setSpeed(25.0f);
     ngl::ShaderLib::use(SplatShader);
     ngl::ShaderLib::setUniform("posSampler", 0);
     ngl::ShaderLib::setUniform("colourSampler", 1);
     ngl::ShaderLib::setUniform("scaleSampler", 2);
     ngl::ShaderLib::setUniform("rotationSampler", 3);
+    ngl::ShaderLib::setUniform("indexSampler", 4);
     ngl::ShaderLib::setUniform("eye", m_cam.getEye());
 
     ngl::ShaderLib::setUniform("projection", m_cam.getProjection());
-    ngl::ShaderLib::setUniform("view", m_cam.getView() * rot); /// * rot?
+    ngl::ShaderLib::setUniform("view", m_cam.getView()*rot); /// * rot?
     m_splat->renderSplats();
   }
   ngl::ShaderLib::use(ngl::nglColourShader);
