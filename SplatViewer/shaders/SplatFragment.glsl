@@ -32,9 +32,6 @@ vec3 sphereIntersect(vec3 c, vec3 ro, vec3 p) {
 
 void main()
 {
-
-
-
     fragColour = colour;
 }
 

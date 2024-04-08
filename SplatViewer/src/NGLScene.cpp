@@ -127,6 +127,7 @@ void NGLScene::paintGL()
     ngl::ShaderLib::setUniform("posSampler", 0);
     ngl::ShaderLib::setUniform("colourSampler", 1);
     ngl::ShaderLib::setUniform("scaleSampler", 2);
+
     ngl::ShaderLib::setUniform("projection", m_cam.getProjection());
     ngl::ShaderLib::setUniform("view", m_cam.getView() * rot); /// * rot?
     //glPointSize(10.0f);
@@ -147,16 +148,22 @@ void NGLScene::paintGL()
 //    glBlendEquationSeparate(GL_FUNC_ADD,GL_FUNC_ADD);
     m_cam.setSpeed(25.0f);
     ngl::ShaderLib::use(SplatShader);
+
     ngl::ShaderLib::setUniform("posSampler", 0);
     ngl::ShaderLib::setUniform("colourSampler", 1);
     ngl::ShaderLib::setUniform("scaleSampler", 2);
     ngl::ShaderLib::setUniform("rotationSampler", 3);
     ngl::ShaderLib::setUniform("indexSampler", 4);
+
     ngl::ShaderLib::setUniform("eye", m_cam.getEye());
 
     ngl::ShaderLib::setUniform("projection", m_cam.getProjection());
     ngl::ShaderLib::setUniform("view", m_cam.getView()*rot); /// * rot?
     m_splat->renderSplats();
+
+
+
+
   }
   ngl::ShaderLib::use(ngl::nglColourShader);
   ngl::ShaderLib::setUniform("MVP",m_cam.getProjection()*m_cam.getView()*rot);

@@ -33,8 +33,8 @@ private :
 
     size_t m_numPoints=0;
     size_t m_numSplatPoints=0;
-    GLuint m_indexBufferID;
-    GLuint m_indexBufferStorage;
+    GLuint m_indexBufferID=0;
+    GLuint m_indexBufferStorage=0;
     std::unique_ptr<ngl::BBox> m_bbox;
     ngl::Vec3 m_minBound;
     ngl::Vec3 m_maxBound;

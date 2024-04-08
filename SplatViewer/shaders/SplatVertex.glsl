@@ -18,7 +18,7 @@ mat3 quatToMat(vec4 q) {
 
 void main()
 {
-    uint index=texelFetch(indexSampler,gl_VertexID).r;
+    int index= int(texelFetch(indexSampler,gl_VertexID).r);
 
     vec3 inPos=texelFetch(posSampler,index).xyz;
     vec4 inColour=texelFetch(colourSampler,index);
